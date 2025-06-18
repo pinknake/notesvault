@@ -59,3 +59,40 @@ function filterNotes() {
     li.style.display = li.textContent.toLowerCase().includes(term) ? "block" : "none";
   }
 }
+
+function exportNotes() {
+  const dataStr = JSON.stringify(notes);
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${userKey}_notes_backup.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importNotes() {
+  const file = document.getElementById("importFile").files[0];
+  if (!file) return alert("No file selected");
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (Array.isArray(imported)) {
+        notes = imported;
+        localStorage.setItem(userKey, JSON.stringify(notes));
+        showNotes();
+        alert("✅ Notes imported successfully!");
+      } else {
+        alert("❌ Invalid file format.");
+      }
+    } catch {
+      alert("❌ Failed to import file.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+
+
