@@ -2,23 +2,33 @@ let userKey = "";
 let notes = [];
 
 function enterVault() {
-  const username = document.getElementById("username").value.trim();
-  if (!username) return alert("Please enter a name.");
+  const usernameInput = document.getElementById("username");
+  const username = usernameInput.value.trim();
+
+  if (!username) {
+    alert("Please enter your name.");
+    return;
+  }
 
   userKey = "vault_" + username.toLowerCase().replace(/\s+/g, "_");
   notes = JSON.parse(localStorage.getItem(userKey)) || [];
+
+  document.getElementById("loginSection").style.display = "none";
   document.getElementById("vault").style.display = "block";
   document.getElementById("userDisplay").innerText = username;
+
   showNotes();
 }
 
 function addNote() {
-  const noteText = document.getElementById("noteInput").value.trim();
+  const noteInput = document.getElementById("noteInput");
+  const noteText = noteInput.value.trim();
+
   if (!noteText) return;
 
   notes.push(noteText);
   localStorage.setItem(userKey, JSON.stringify(notes));
-  document.getElementById("noteInput").value = "";
+  noteInput.value = "";
   showNotes();
 }
 
@@ -27,6 +37,7 @@ function showNotes(filtered = null) {
   noteList.innerHTML = "";
 
   const displayNotes = filtered || notes;
+
   displayNotes.forEach((note, i) => {
     const li = document.createElement("li");
     li.textContent = note;
@@ -37,6 +48,7 @@ function showNotes(filtered = null) {
 
 function deleteNote(index) {
   if (!confirm("Delete this note?")) return;
+
   notes.splice(index, 1);
   localStorage.setItem(userKey, JSON.stringify(notes));
   showNotes();
@@ -53,9 +65,12 @@ function exportNotes() {
   const blob = new Blob([dataStr], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
+
   a.href = url;
   a.download = `${userKey}_notes_backup.json`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
