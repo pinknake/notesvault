@@ -1,4 +1,4 @@
-  let userKey = "";
+let userKey = "";
 let notes = [];
 
 function enterVault() {
