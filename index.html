@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bharat Notes Vault 🗝️</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🇮🇳 Bharat Notes Vault</h1>
+
+    <div id="login">
+      <input type="text" id="username" placeholder="Enter your name">
+      <button onclick="startVault()">Enter Vault</button>
+    </div>
+
+    <div id="vault" style="display:none;">
+      <h2 id="welcome"></h2>
+      <textarea id="newNote" placeholder="Write your note here..."></textarea>
+      <button onclick="addNote()">Add Note</button>
+
+      <input type="text" id="search" placeholder="Search notes..." oninput="filterNotes()">
+      <ul id="notesList"></ul>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
