@@ -20,6 +20,10 @@
 
       <input type="text" id="search" placeholder="Search notes..." oninput="filterNotes()">
       <ul id="notesList"></ul>
+  <div style="margin: 10px 0;">
+  <button onclick="exportNotes()">📥 Export Notes</button>
+  <input type="file" id="importFile" accept=".json" onchange="importNotes()">
+</div>
     </div>
   </div>
 
