@@ -4,7 +4,9 @@ body {
   padding: 20px;
   margin: 0;
 }
-
+.note-buttons button {
+  margin: 5px 4px 0 0;
+}
 .container {
   max-width: 800px;
   margin: auto;
