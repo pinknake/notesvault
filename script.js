@@ -1,98 +1,129 @@
-let userKey = "";
-let notes = [];
+// script.js
 
-function enterVault() {
-  const usernameInput = document.getElementById("username");
-  const username = usernameInput.value.trim();
+let notes = JSON.parse(localStorage.getItem("vault_notes")) || [];
 
-  if (!username) {
-    alert("Please enter your name.");
-    return;
-  }
-
-  userKey = "vault_" + username.toLowerCase().replace(/\s+/g, "_");
-  notes = JSON.parse(localStorage.getItem(userKey)) || [];
-
-  document.getElementById("loginSection").style.display = "none";
-  document.getElementById("vault").style.display = "block";
-  document.getElementById("userDisplay").innerText = username;
-
+function saveNotes() {
+  localStorage.setItem("vault_notes", JSON.stringify(notes));
   showNotes();
 }
 
 function addNote() {
-  const noteInput = document.getElementById("noteInput");
-  const noteText = noteInput.value.trim();
+  const text = document.getElementById("noteInput").value.trim();
+  const tags = document.getElementById("tagsInput").value.trim().split(" ").filter(tag => tag.startsWith("#"));
+  const folder = document.getElementById("folderInput").value.trim();
+  if (!text) return alert("Note can't be empty!");
 
-  if (!noteText) return;
+  const newNote = {
+    id: Date.now(),
+    text,
+    tags,
+    folder,
+    pinned: false,
+    time: new Date().toLocaleString()
+  };
 
-  notes.push(noteText);
-  localStorage.setItem(userKey, JSON.stringify(notes));
-  noteInput.value = "";
-  showNotes();
+  notes.unshift(newNote);
+  saveNotes();
+
+  document.getElementById("noteInput").value = "";
+  document.getElementById("tagsInput").value = "";
+  document.getElementById("folderInput").value = "";
 }
 
-function showNotes(filtered = null) {
-  const noteList = document.getElementById("noteList");
-  noteList.innerHTML = "";
+function showNotes(filteredNotes = notes) {
+  const list = document.getElementById("notesList");
+  list.innerHTML = "";
 
-  const displayNotes = filtered || notes;
+  const pinned = filteredNotes.filter(n => n.pinned);
+  const unpinned = filteredNotes.filter(n => !n.pinned);
 
-  displayNotes.forEach((note, i) => {
+  const display = [...pinned, ...unpinned];
+
+  display.forEach(note => {
     const li = document.createElement("li");
-    li.textContent = note;
-    li.onclick = () => deleteNote(i);
-    noteList.appendChild(li);
+    li.className = "note";
+
+    const pinBtn = document.createElement("button");
+    pinBtn.innerText = note.pinned ? "📌 Unpin" : "📍 Pin";
+    pinBtn.onclick = () => togglePin(note.id);
+
+    const tagHTML = note.tags.map(t => `<span class="tag" onclick="filterByTag('${t}')">${t}</span>`).join(" ");
+
+    li.innerHTML = `
+      <div class="note-text">${note.text}</div>
+      <div><small>🗂️ ${note.folder || 'No Folder'} | 🕒 ${note.time}</small></div>
+      <div>${tagHTML}</div>
+    `;
+    li.appendChild(pinBtn);
+    list.appendChild(li);
   });
+
+  updateFolders();
 }
 
-function deleteNote(index) {
-  if (!confirm("Delete this note?")) return;
-
-  notes.splice(index, 1);
-  localStorage.setItem(userKey, JSON.stringify(notes));
-  showNotes();
+function togglePin(id) {
+  notes = notes.map(note =>
+    note.id === id ? { ...note, pinned: !note.pinned } : note
+  );
+  saveNotes();
 }
 
-function searchNotes() {
-  const q = document.getElementById("search").value.toLowerCase();
-  const filtered = notes.filter(note => note.toLowerCase().includes(q));
+function filterByTag(tag) {
+  const filtered = notes.filter(note => note.tags.includes(tag));
   showNotes(filtered);
 }
 
+function showAll() {
+  showNotes();
+}
+
+function showPinned() {
+  showNotes(notes.filter(note => note.pinned));
+}
+
+function updateFolders() {
+  const container = document.getElementById("folderList");
+  container.innerHTML = "";
+
+  const uniqueFolders = [...new Set(notes.map(n => n.folder).filter(f => f))];
+  uniqueFolders.forEach(folder => {
+    const btn = document.createElement("button");
+    btn.innerText = folder;
+    btn.onclick = () => {
+      const filtered = notes.filter(n => n.folder === folder);
+      showNotes(filtered);
+    };
+    container.appendChild(btn);
+  });
+}
+
 function exportNotes() {
-  const dataStr = JSON.stringify(notes);
-  const blob = new Blob([dataStr], { type: "application/json" });
+  const blob = new Blob([JSON.stringify(notes, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-
   a.href = url;
-  a.download = `${userKey}_notes_backup.json`;
-  document.body.appendChild(a);
+  a.download = "vault_notes_backup.json";
   a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
 
 function importNotes() {
   const file = document.getElementById("importFile").files[0];
-  if (!file) return alert("No file selected");
+  if (!file) return alert("Choose a file");
 
   const reader = new FileReader();
   reader.onload = function (e) {
     try {
       const imported = JSON.parse(e.target.result);
-      if (Array.isArray(imported)) {
-        notes = imported;
-        localStorage.setItem(userKey, JSON.stringify(notes));
-        showNotes();
-        alert("✅ Notes imported successfully!");
-      } else {
-        alert("❌ Invalid file format.");
-      }
+      if (!Array.isArray(imported)) return alert("Invalid format");
+
+      notes = imported;
+      saveNotes();
+      alert("Notes imported ✅");
     } catch {
-      alert("❌ Failed to import file.");
+      alert("❌ Failed to import notes.");
     }
   };
   reader.readAsText(file);
 }
+
+showNotes(); // Initial call
