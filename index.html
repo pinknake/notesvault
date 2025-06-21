@@ -1,31 +1,34 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Vault Notes</title>
+  <meta charset="UTF-8">
+  <title>Bharat Notes Vault 🇮🇳</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>🧠 Vault Notes</h1>
+  <div class="container">
+    <h1>📔 Bharat Notes Vault</h1>
+    
+    <div id="loginSection">
+      <input type="text" id="username" placeholder="Enter your name">
+      <button onclick="enterVault()">Enter Vault 🔐</button>
+    </div>
 
-  <div class="input-area">
-    <input type="text" id="noteInput" placeholder="Write your note...">
-    <input type="text" id="tagsInput" placeholder="#tag1 #tag2">
-    <input type="text" id="folderInput" placeholder="Folder name">
-    <button onclick="addNote()">Add Note</button>
-  </div>
+    <div id="vault" style="display:none;">
+      <h2>Welcome, <span id="userDisplay"></span></h2>
+      
+      <input type="text" id="noteInput" placeholder="Write your note here...">
+      <button onclick="addNote()">Add Note ➕</button>
 
-  <div class="filters">
-    <button onclick="showAll()">All</button>
-    <button onclick="showPinned()">📌 Pinned</button>
-    <div id="folderList"></div>
-  </div>
+      <input type="text" id="search" placeholder="Search..." onkeyup="searchNotes()">
 
-  <ul id="notesList"></ul>
+      <div style="margin: 10px 0;">
+        <button onclick="exportNotes()">📥 Export</button>
+        <input type="file" id="importFile" accept=".json" onchange="importNotes()">
+      </div>
 
-  <div class="import-export">
-    <button onclick="exportNotes()">📤 Export</button>
-    <input type="file" id="importFile" onchange="importNotes()">
-  </div>
+      <ul id="noteList"></ul>
+    </div>
 
   <script src="script.js"></script>
 </body>
