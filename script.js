@@ -1,129 +1,125 @@
-// script.js
+let userKey = "";
+let notes = [];
 
-let notes = JSON.parse(localStorage.getItem("vault_notes")) || [];
+function enterVault() {
+  const usernameInput = document.getElementById("username");
+  const username = usernameInput.value.trim();
+
+  if (!username) return alert("Please enter your name.");
+
+  userKey = "vault_" + username.toLowerCase().replace(/\s+/g, "_");
+  notes = JSON.parse(localStorage.getItem(userKey)) || [];
+
+  document.getElementById("loginSection").style.display = "none";
+  document.getElementById("vault").style.display = "block";
+  document.getElementById("userDisplay").innerText = username;
+
+  showNotes();
+}
 
 function saveNotes() {
-  localStorage.setItem("vault_notes", JSON.stringify(notes));
+  localStorage.setItem(userKey, JSON.stringify(notes));
   showNotes();
 }
 
 function addNote() {
-  const text = document.getElementById("noteInput").value.trim();
-  const tags = document.getElementById("tagsInput").value.trim().split(" ").filter(tag => tag.startsWith("#"));
-  const folder = document.getElementById("folderInput").value.trim();
-  if (!text) return alert("Note can't be empty!");
+  const noteText = document.getElementById("noteInput").value.trim();
+  if (!noteText) return;
 
-  const newNote = {
+  const folder = prompt("📂 Enter folder name (optional):") || "";
+
+  const note = {
     id: Date.now(),
-    text,
-    tags,
+    text: noteText,
     folder,
-    pinned: false,
     time: new Date().toLocaleString()
   };
 
-  notes.unshift(newNote);
+  notes.unshift(note);
   saveNotes();
 
   document.getElementById("noteInput").value = "";
-  document.getElementById("tagsInput").value = "";
-  document.getElementById("folderInput").value = "";
 }
 
-function showNotes(filteredNotes = notes) {
-  const list = document.getElementById("notesList");
-  list.innerHTML = "";
+function showNotes(filtered = notes) {
+  const noteList = document.getElementById("noteList");
+  noteList.innerHTML = "";
 
-  const pinned = filteredNotes.filter(n => n.pinned);
-  const unpinned = filteredNotes.filter(n => !n.pinned);
-
-  const display = [...pinned, ...unpinned];
-
-  display.forEach(note => {
+  filtered.forEach((note, i) => {
     const li = document.createElement("li");
     li.className = "note";
 
-    const pinBtn = document.createElement("button");
-    pinBtn.innerText = note.pinned ? "📌 Unpin" : "📍 Pin";
-    pinBtn.onclick = () => togglePin(note.id);
-
-    const tagHTML = note.tags.map(t => `<span class="tag" onclick="filterByTag('${t}')">${t}</span>`).join(" ");
-
-    li.innerHTML = `
+    const html = `
       <div class="note-text">${note.text}</div>
-      <div><small>🗂️ ${note.folder || 'No Folder'} | 🕒 ${note.time}</small></div>
-      <div>${tagHTML}</div>
+      <small>🗂️ ${note.folder || "No Folder"} | 🕒 ${note.time}</small>
+      <div class="note-buttons">
+        <button onclick="editNote(${note.id})">✏️ Edit</button>
+        <button onclick="deleteNote(${note.id})">🗑️ Delete</button>
+        <button onclick="copyNote(${i})">📋 Copy</button>
+      </div>
     `;
-    li.appendChild(pinBtn);
-    list.appendChild(li);
-  });
 
-  updateFolders();
+    li.innerHTML = html;
+    noteList.appendChild(li);
+  });
 }
 
-function togglePin(id) {
-  notes = notes.map(note =>
-    note.id === id ? { ...note, pinned: !note.pinned } : note
-  );
+function editNote(id) {
+  const note = notes.find(n => n.id === id);
+  const newText = prompt("✏️ Edit note:", note.text);
+  if (newText !== null) {
+    const newFolder = prompt("📂 Edit folder:", note.folder);
+    note.text = newText;
+    note.folder = newFolder;
+    saveNotes();
+  }
+}
+
+function deleteNote(id) {
+  if (!confirm("Delete this note?")) return;
+  notes = notes.filter(n => n.id !== id);
   saveNotes();
 }
 
-function filterByTag(tag) {
-  const filtered = notes.filter(note => note.tags.includes(tag));
+function copyNote(index) {
+  navigator.clipboard.writeText(notes[index].text)
+    .then(() => alert("📋 Note copied!"))
+    .catch(() => alert("❌ Copy failed"));
+}
+
+function searchNotes() {
+  const q = document.getElementById("search").value.toLowerCase();
+  const filtered = notes.filter(n =>
+    n.text.toLowerCase().includes(q) ||
+    (n.folder && n.folder.toLowerCase().includes(q))
+  );
   showNotes(filtered);
 }
 
-function showAll() {
-  showNotes();
-}
-
-function showPinned() {
-  showNotes(notes.filter(note => note.pinned));
-}
-
-function updateFolders() {
-  const container = document.getElementById("folderList");
-  container.innerHTML = "";
-
-  const uniqueFolders = [...new Set(notes.map(n => n.folder).filter(f => f))];
-  uniqueFolders.forEach(folder => {
-    const btn = document.createElement("button");
-    btn.innerText = folder;
-    btn.onclick = () => {
-      const filtered = notes.filter(n => n.folder === folder);
-      showNotes(filtered);
-    };
-    container.appendChild(btn);
-  });
-}
-
 function exportNotes() {
-  const blob = new Blob([JSON.stringify(notes, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
+  const dataStr = JSON.stringify(notes);
+  const blob = new Blob([dataStr], { type: "application/json" });
   const a = document.createElement("a");
-  a.href = url;
-  a.download = "vault_notes_backup.json";
+  a.href = URL.createObjectURL(blob);
+  a.download = `${userKey}_notes.json`;
   a.click();
 }
 
 function importNotes() {
   const file = document.getElementById("importFile").files[0];
-  if (!file) return alert("Choose a file");
+  if (!file) return;
 
   const reader = new FileReader();
   reader.onload = function (e) {
     try {
       const imported = JSON.parse(e.target.result);
       if (!Array.isArray(imported)) return alert("Invalid format");
-
       notes = imported;
       saveNotes();
-      alert("Notes imported ✅");
     } catch {
-      alert("❌ Failed to import notes.");
+      alert("Failed to import file.");
     }
   };
   reader.readAsText(file);
 }
 
-showNotes(); // Initial call
