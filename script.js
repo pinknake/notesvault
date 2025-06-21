@@ -25,9 +25,12 @@ function addNote() {
   const text = document.getElementById("noteInput").value.trim();
   if (!text) return;
 
+  const folder = prompt("📂 Enter folder name (optional):") || "";
+
   const note = {
     id: Date.now(),
     text,
+    folder,
     time: new Date().toLocaleString()
   };
 
@@ -44,8 +47,8 @@ function showNotes(list = notes) {
   list.forEach(note => {
     const li = document.createElement("li");
     li.innerHTML = `
-      <div>${note.text}</div>
-      <small>${note.time}</small>
+      <div><strong>${note.text}</strong></div>
+      <small>📂 ${note.folder || 'No Folder'} | 🕒 ${note.time}</small><br>
       <div>
         <button onclick="editNote(${note.id})">✏️</button>
         <button onclick="deleteNote(${note.id})">🗑️</button>
@@ -59,8 +62,10 @@ function editNote(id) {
   const index = notes.findIndex(n => n.id === id);
   if (index !== -1) {
     const newText = prompt("Edit note:", notes[index].text);
-    if (newText) {
+    const newFolder = prompt("Edit folder:", notes[index].folder || "");
+    if (newText !== null) {
       notes[index].text = newText;
+      notes[index].folder = newFolder;
       notes[index].time = new Date().toLocaleString();
       saveNotes();
       showNotes();
