@@ -5,7 +5,10 @@ function enterVault() {
   const usernameInput = document.getElementById("username");
   const username = usernameInput.value.trim();
 
-  if (!username) return alert("Please enter your name.");
+  if (!username) {
+    alert("Please enter your name.");
+    return;
+  }
 
   userKey = "vault_" + username.toLowerCase().replace(/\s+/g, "_");
   notes = JSON.parse(localStorage.getItem(userKey)) || [];
@@ -19,107 +22,114 @@ function enterVault() {
 
 function saveNotes() {
   localStorage.setItem(userKey, JSON.stringify(notes));
-  showNotes();
 }
 
 function addNote() {
-  const noteText = document.getElementById("noteInput").value.trim();
-  if (!noteText) return;
+  const noteInput = document.getElementById("noteInput");
+  const noteText = noteInput.value.trim();
 
-  const folder = prompt("📂 Enter folder name (optional):") || "";
+  if (!noteText) return;
 
   const note = {
     id: Date.now(),
     text: noteText,
-    folder,
     time: new Date().toLocaleString()
   };
 
   notes.unshift(note);
   saveNotes();
-
-  document.getElementById("noteInput").value = "";
+  noteInput.value = "";
+  showNotes();
 }
 
-function showNotes(filtered = notes) {
+function showNotes(filtered = null) {
   const noteList = document.getElementById("noteList");
   noteList.innerHTML = "";
 
-  filtered.forEach((note, i) => {
-    const li = document.createElement("li");
-    li.className = "note";
+  const displayNotes = filtered || notes;
 
-    const html = `
+  displayNotes.forEach((note) => {
+    const li = document.createElement("li");
+    li.className = "note-item";
+
+    li.innerHTML = `
       <div class="note-text">${note.text}</div>
-      <small>🗂️ ${note.folder || "No Folder"} | 🕒 ${note.time}</small>
+      <small>🕒 ${note.time}</small>
       <div class="note-buttons">
         <button onclick="editNote(${note.id})">✏️ Edit</button>
         <button onclick="deleteNote(${note.id})">🗑️ Delete</button>
-        <button onclick="copyNote(${i})">📋 Copy</button>
+        <button onclick="copyNote('${note.text.replace(/'/g, "\\'")}')">📋 Copy</button>
       </div>
     `;
 
-    li.innerHTML = html;
     noteList.appendChild(li);
   });
 }
 
 function editNote(id) {
-  const note = notes.find(n => n.id === id);
-  const newText = prompt("✏️ Edit note:", note.text);
-  if (newText !== null) {
-    const newFolder = prompt("📂 Edit folder:", note.folder);
-    note.text = newText;
-    note.folder = newFolder;
+  const index = notes.findIndex(n => n.id === id);
+  if (index === -1) return;
+
+  const newText = prompt("Edit your note:", notes[index].text);
+  if (newText !== null && newText.trim()) {
+    notes[index].text = newText.trim();
+    notes[index].time = new Date().toLocaleString();
     saveNotes();
+    showNotes();
   }
 }
 
 function deleteNote(id) {
-  if (!confirm("Delete this note?")) return;
-  notes = notes.filter(n => n.id !== id);
+  if (!confirm("Are you sure you want to delete this note?")) return;
+  notes = notes.filter(note => note.id !== id);
   saveNotes();
+  showNotes();
 }
 
-function copyNote(index) {
-  navigator.clipboard.writeText(notes[index].text)
+function copyNote(text) {
+  navigator.clipboard.writeText(text)
     .then(() => alert("📋 Note copied!"))
     .catch(() => alert("❌ Copy failed"));
 }
 
 function searchNotes() {
   const q = document.getElementById("search").value.toLowerCase();
-  const filtered = notes.filter(n =>
-    n.text.toLowerCase().includes(q) ||
-    (n.folder && n.folder.toLowerCase().includes(q))
-  );
+  const filtered = notes.filter(note => note.text.toLowerCase().includes(q));
   showNotes(filtered);
 }
 
 function exportNotes() {
   const dataStr = JSON.stringify(notes);
   const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `${userKey}_notes.json`;
+
+  a.href = url;
+  a.download = `${userKey}_notes_backup.json`;
   a.click();
+
+  URL.revokeObjectURL(url);
 }
 
 function importNotes() {
   const file = document.getElementById("importFile").files[0];
-  if (!file) return;
+  if (!file) return alert("No file selected");
 
   const reader = new FileReader();
   reader.onload = function (e) {
     try {
       const imported = JSON.parse(e.target.result);
-      if (!Array.isArray(imported)) return alert("Invalid format");
-      notes = imported;
-      saveNotes();
+      if (Array.isArray(imported)) {
+        notes = imported;
+        saveNotes();
+        showNotes();
+        alert("✅ Notes imported successfully!");
+      } else {
+        alert("❌ Invalid file format.");
+      }
     } catch {
-      alert("Failed to import file.");
+      alert("❌ Failed to import file.");
     }
   };
   reader.readAsText(file);
 }
-
