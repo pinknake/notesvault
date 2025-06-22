@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📷 BharatCam with Stickers</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f0f0f0;
+      padding: 20px;
+    }
+
+    video, canvas, img {
+      width: 90%;
+      max-width: 400px;
+      border-radius: 10px;
+      margin: 10px 0;
+      border: 3px solid #007bff;
+    }
+
+    select, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    #gallery {
+      margin-top: 20px;
+    }
+
+    .gallery-item {
+      display: inline-block;
+      margin: 10px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 5px;
+    }
+
+    .gallery-item img {
+      width: 100px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📸 BharatCam with Stickers</h2>
+
+  <select id="cameraList"></select><br>
+
+  <select id="stickerSelect">
+    <option value="">🔘 No Sticker</option>
+    <option value="🕉️">🕉️ Om</option>
+    <option value="🇮🇳">🇮🇳 India Flag</option>
+    <option value="🔥">🔥 Fire</option>
+    <option value="😎">😎 Cool</option>
+  </select><br>
+
+  <video id="video" autoplay playsinline muted></video><br>
+
+  <button onclick="startSelectedCamera()">🔄 Switch Camera</button>
+  <button onclick="takeSnapshot()">📸 Snapshot</button>
+  <button onclick="saveSnapshot()">💾 Save</button>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+  <img id="snapshot" style="display:none;" />
+
+  <div id="gallery">
+    <h3>🖼 Gallery</h3>
+    <div id="galleryItems"></div>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const snapshot = document.getElementById("snapshot");
+    const cameraList = document.getElementById("cameraList");
+    const gallery = document.getElementById("galleryItems");
+    const stickerSelect = document.getElementById("stickerSelect");
+
+    let currentStream = null;
+
+    async function getCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === "videoinput");
+      cameraList.innerHTML = "";
+      videoDevices.forEach((device, i) => {
+        const opt = document.createElement("option");
+        opt.value = device.deviceId;
+        opt.text = device.label || `Camera ${i + 1}`;
+        cameraList.appendChild(opt);
+      });
+    }
+
+    async function startCamera(deviceId) {
+      if (currentStream) currentStream.getTracks().forEach(track => track.stop());
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: deviceId } },
+          audio: false
+        });
+        video.srcObject = stream;
+        currentStream = stream;
+      } catch (err) {
+        alert("Camera Error: " + err.message);
+      }
+    }
+
+    function startSelectedCamera() {
+      const selectedId = cameraList.value;
+      if (selectedId) startCamera(selectedId);
+    }
+
+    function takeSnapshot() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0);
+
+      // Draw sticker
+      const sticker = stickerSelect.value;
+      if (sticker) {
+        ctx.font = "60px Arial";
+        ctx.fillText(sticker, 20, 60); // top-left corner
+      }
+
+      const dataURL = canvas.toDataURL("image/png");
+      snapshot.src = dataURL;
+      snapshot.style.display = "block";
+    }
+
+    function saveSnapshot() {
+      if (!snapshot.src) return alert("📸 No snapshot yet!");
+
+      const img = document.createElement("img");
+      img.src = snapshot.src;
+      const div = document.createElement("div");
+      div.className = "gallery-item";
+      div.appendChild(img);
+      gallery.appendChild(div);
+
+      const a = document.createElement("a");
+      a.href = snapshot.src;
+      a.download = "snapshot_with_sticker.png";
+      a.click();
+    }
+
+    // Initialize
+    (async () => {
+      await getCameras();
+      if (cameraList.options.length > 0) startCamera(cameraList.value);
+    })();
+  </script>
+</body>
+</html>
