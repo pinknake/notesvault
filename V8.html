@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📸 BharatCam Pro</title>
+  <style>
+    body { text-align: center; background: #fff; font-family: Arial; }
+    video, canvas { max-width: 400px; width: 90%; margin: 10px; border-radius: 10px; border: 2px solid #444; }
+    button, select { margin: 5px; padding: 10px; font-size: 16px; }
+    #drawCanvas { position: absolute; top: 0; left: 0; }
+    #wrapper { position: relative; display: inline-block; }
+  </style>
+</head>
+<body>
+
+  <h2>📸 BharatCam Pro</h2>
+
+  <select id="cameraList"></select>
+  <button onclick="toggleMute()">🔇 Mute</button>
+  <button onclick="takePhoto()">⏳ Timer + Snapshot</button>
+
+  <div id="wrapper">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="drawCanvas" width="400" height="300" style="border:1px dashed red;"></canvas>
+  </div>
+
+  <canvas id="finalCanvas" style="display:none;"></canvas>
+  <br><button onclick="saveFinal()">💾 Save Final Photo</button>
+  <br><img id="result" style="max-width:400px; margin:10px; display:none;">
+
+<script>
+  let stream = null;
+  let micEnabled = false;
+
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("drawCanvas");
+  const ctx = canvas.getContext("2d");
+  const cameraList = document.getElementById("cameraList");
+
+  let drawing = false;
+
+  // Draw with mouse
+  canvas.addEventListener("mousedown", () => drawing = true);
+  canvas.addEventListener("mouseup", () => drawing = false);
+  canvas.addEventListener("mousemove", draw);
+
+  function draw(e) {
+    if (!drawing) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "red";
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+  }
+
+  async function getCameras() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(d => d.kind === "videoinput");
+    cameraList.innerHTML = "";
+    videoDevices.forEach((device, i) => {
+      const opt = document.createElement("option");
+      opt.value = device.deviceId;
+      opt.text = device.label || `Camera ${i+1}`;
+      cameraList.appendChild(opt);
+    });
+    if (videoDevices.length > 0) startCamera(videoDevices[0].deviceId);
+  }
+
+  async function startCamera(deviceId) {
+    if (stream) stream.getTracks().forEach(track => track.stop());
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { deviceId: { exact: deviceId } },
+      audio: true
+    });
+    video.srcObject = stream;
+  }
+
+  function toggleMute() {
+    micEnabled = !micEnabled;
+    stream.getAudioTracks().forEach(track => track.enabled = micEnabled);
+    alert(micEnabled ? "🎙️ Mic ON" : "🔇 Mic OFF");
+  }
+
+  function takePhoto() {
+    alert("⏳ Capturing in 3 seconds...");
+    setTimeout(() => {
+      const finalCanvas = document.getElementById("finalCanvas");
+      finalCanvas.width = video.videoWidth;
+      finalCanvas.height = video.videoHeight;
+      const finalCtx = finalCanvas.getContext("2d");
+      finalCtx.drawImage(video, 0, 0);
+      finalCtx.drawImage(canvas, 0, 0); // draw overlay
+      document.getElementById("result").src = finalCanvas.toDataURL();
+      document.getElementById("result").style.display = "block";
+    }, 3000);
+  }
+
+  function saveFinal() {
+    const finalCanvas = document.getElementById("finalCanvas");
+    const a = document.createElement("a");
+    a.href = finalCanvas.toDataURL("image/png");
+    a.download = "bharatcam_pro.png";
+    a.click();
+  }
+
+  getCameras();
+</script>
+</body>
+</html>
