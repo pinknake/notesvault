@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📷 Bharat Camera (Local Only)</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #f0f0f0;
+      padding: 20px;
+    }
+    video, canvas, img {
+      width: 90%;
+      max-width: 400px;
+      border-radius: 10px;
+      margin: 10px 0;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>📸 Bharat Camera</h2>
+
+  <video id="video" autoplay muted playsinline></video><br>
+
+  <button onclick="startRecording()">🔴 Start Recording</button>
+  <button onclick="stopRecording()">⏹️ Stop & Preview</button>
+  <button onclick="takeSnapshot()">📸 Snapshot</button>
+
+  <h3>🎞️ Preview Area</h3>
+  <video id="previewVideo" controls style="display:none;"></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <img id="snapshot" alt="Snapshot" style="display:none;" />
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const snapshot = document.getElementById("snapshot");
+    const previewVideo = document.getElementById("previewVideo");
+
+    let mediaRecorder;
+    let recordedChunks = [];
+
+    // Start Camera
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then(stream => {
+        video.srcObject = stream;
+        window.localStream = stream;
+      })
+      .catch(err => alert("Camera error: " + err.message));
+
+    function takeSnapshot() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0);
+      snapshot.src = canvas.toDataURL("image/png");
+      snapshot.style.display = "block";
+    }
+
+    function startRecording() {
+      recordedChunks = [];
+      const stream = video.srcObject;
+      mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        previewVideo.src = url;
+        previewVideo.style.display = "block";
+      };
+
+      mediaRecorder.start();
+      alert("🎥 Recording started...");
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+        alert("⏹️ Recording stopped!");
+      }
+    }
+  </script>
+</body>
+</html>
