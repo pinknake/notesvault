@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📷 Bharat Camera</title>
+  <style>
+    body { text-align: center; background: #f0f0f0; font-family: sans-serif; }
+    video, canvas { width: 90%; max-width: 400px; margin-top: 10px; border-radius: 10px; }
+    select, button { margin: 10px; padding: 10px 15px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h2>📷 Bharat Camera</h2>
+
+  <select id="cameraList"></select><br>
+  <video id="video" autoplay playsinline muted></video><br>
+
+  <button onclick="startSelectedCamera()">🔄 Switch</button>
+  <button onclick="takePhoto()">📸 Capture</button><br>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const cameraList = document.getElementById('cameraList');
+    let currentStream = null;
+
+    async function getCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === 'videoinput');
+      cameraList.innerHTML = "";
+      videoDevices.forEach((device, i) => {
+        const opt = document.createElement("option");
+        opt.value = device.deviceId;
+        opt.text = device.label || `Camera ${i + 1}`;
+        cameraList.appendChild(opt);
+      });
+    }
+
+    async function startCamera(deviceId) {
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: deviceId } }
+        });
+        currentStream = stream;
+        video.srcObject = stream;
+        await video.play(); // Ensure play starts
+      } catch (err) {
+        alert("Camera error: " + err.message);
+      }
+    }
+
+    function startSelectedCamera() {
+      const selectedId = cameraList.value;
+      if (selectedId) startCamera(selectedId);
+    }
+
+    function takePhoto() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.style.display = 'block';
+    }
+
+    // Init
+    (async () => {
+      await getCameras();
+      if (cameraList.options.length > 0) {
+        startCamera(cameraList.value);
+      }
+    })();
+  </script>
+</body>
+</html>
+
