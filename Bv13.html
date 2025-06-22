@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📸 BharatCam v5 – Reels</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #f8f8f8;
+    }
+    video {
+      width: 90%;
+      max-width: 400px;
+      border-radius: 10px;
+      margin: 10px;
+      filter: var(--filter, none);
+    }
+    button, input, select {
+      margin: 5px;
+      padding: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📸 BharatCam Reels</h2>
+
+  <video id="preview" autoplay playsinline muted></video><br>
+
+  <label>🎵 Upload Song (mp3):
+    <input type="file" id="audioInput" accept="audio/*">
+  </label><br>
+
+  <label>🎨 Filter:
+    <select onchange="setFilter(this.value)">
+      <option value="none">None</option>
+      <option value="grayscale(1)">Grayscale</option>
+      <option value="sepia(1)">Sepia</option>
+      <option value="contrast(1.5)">Contrast</option>
+      <option value="blur(2px)">Blur</option>
+    </select>
+  </label><br>
+
+  <button onclick="startRecording()">🎬 Start</button>
+  <button onclick="stopRecording()">🛑 Stop</button><br>
+
+  <a id="downloadLink" style="display:none;" download="bharat_reel.webm">📥 Save Reel</a>
+
+  <script>
+    let stream, recorder, chunks = [], audio, audioStream, mixStream;
+
+    async function initCamera() {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      document.getElementById("preview").srcObject = stream;
+    }
+
+    function setFilter(val) {
+      document.documentElement.style.setProperty('--filter', val);
+    }
+
+    function startRecording() {
+      const audioFile = document.getElementById("audioInput").files[0];
+      if (!audioFile) return alert("Please upload a background song");
+
+      audio = new Audio(URL.createObjectURL(audioFile));
+      audio.loop = true;
+      audio.play();
+
+      // create audio context for combining
+      const audioContext = new AudioContext();
+      const source1 = audioContext.createMediaElementSource(audio);
+      const dest = audioContext.createMediaStreamDestination();
+      source1.connect(dest);
+      source1.connect(audioContext.destination);
+
+      audioStream = dest.stream;
+
+      // combine audio + video
+      const tracks = [...stream.getVideoTracks(), ...audioStream.getAudioTracks()];
+      mixStream = new MediaStream(tracks);
+
+      recorder = new MediaRecorder(mixStream);
+      chunks = [];
+
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = saveRecording;
+      recorder.start();
+
+      setTimeout(() => stopRecording(), 30000); // Auto stop at 30s
+    }
+
+    function stopRecording() {
+      if (recorder && recorder.state === "recording") {
+        recorder.stop();
+        if (audio) audio.pause();
+      }
+    }
+
+    function saveRecording() {
+      const blob = new Blob(chunks, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+      const link = document.getElementById("downloadLink");
+      link.href = url;
+      link.style.display = "inline-block";
+    }
+
+    window.onload = initCamera;
+  </script>
+</body>
+</html>
