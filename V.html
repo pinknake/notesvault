@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🎥 Bharat Video Camera</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background-color: #f0f0f0;
+    }
+    video {
+      width: 90%;
+      max-width: 400px;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎥 Bharat Video</h1>
+  <video id="video" autoplay playsinline muted></video>
+  <br>
+  <button onclick="startVideo()">📷 Start Video</button>
+
+  <script>
+    const video = document.getElementById('video');
+    let currentStream = null;
+
+    async function startVideo() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,  // front camera by default
+          audio: false
+        });
+        video.srcObject = stream;
+        currentStream = stream;
+      } catch (error) {
+        alert("❌ Error accessing camera: " + error.message);
+      }
+    }
+
+    // Auto-start when page loads
+    window.onload = startVideo;
+  </script>
+</body>
+</html>
