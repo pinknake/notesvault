@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📷 Bharat Camera</title>
+  <style>
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      background: #f0f0f0;
+    }
+    video, canvas {
+      width: 90%;
+      max-width: 400px;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+    select, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📸 Bharat Camera</h2>
+
+  <select id="cameraList"></select><br>
+  <video id="video" autoplay playsinline muted></video><br>
+
+  <button onclick="startSelectedCamera()">🔄 Switch Camera</button>
+  <button onclick="takePhoto()">📸 Capture</button>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const cameraList = document.getElementById('cameraList');
+    let currentStream = null;
+    let videoDevices = [];
+
+    async function requestPermissionFirst() {
+      try {
+        // Dummy request to ensure permission dialog shows
+        await navigator.mediaDevices.getUserMedia({ video: true });
+      } catch (e) {
+        alert("❌ Camera permission denied.");
+      }
+    }
+
+    async function getCameras() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        videoDevices = devices.filter(device => device.kind === 'videoinput');
+        cameraList.innerHTML = '';
+        videoDevices.forEach((device, index) => {
+          const option = document.createElement('option');
+          option.value = device.deviceId;
+          option.text = device.label || `Camera ${index + 1}`;
+          cameraList.appendChild(option);
+        });
+      } catch (err) {
+        alert("Camera list error: " + err.message);
+      }
+    }
+
+    async function startCamera(deviceId) {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: deviceId } }
+        });
+        video.srcObject = stream;
+        currentStream = stream;
+        await video.play();
+      } catch (err) {
+        alert("❌ Camera not working: " + err.message);
+        fallbackCamera();
+      }
+    }
+
+    async function fallbackCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        currentStream = stream;
+        await video.play();
+      } catch (e) {
+        alert("🚫 No camera available: " + e.message);
+      }
+    }
+
+    function startSelectedCamera() {
+      const selectedId = cameraList.value;
+      if (selectedId) {
+        startCamera(selectedId);
+      }
+    }
+
+    function takePhoto() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.style.display = 'block';
+    }
+
+    // Initialize
+    (async () => {
+      await requestPermissionFirst(); // ensure permission is asked first
+      await getCameras();
+      if (cameraList.options.length > 0) {
+        await startCamera(cameraList.value);
+      }
+    })();
+  </script>
+</body>
+</html>
