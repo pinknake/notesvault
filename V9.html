@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📸 BharatCam Pro – Emoji Drag</title>
+  <style>
+    body { text-align: center; background: #f9f9f9; font-family: Arial; }
+    video, canvas { max-width: 400px; width: 90%; border-radius: 10px; margin: 10px; border: 2px solid #444; }
+    .sticker {
+      position: absolute;
+      cursor: move;
+      font-size: 32px;
+      user-select: none;
+    }
+    #emojiPanel {
+      margin: 10px;
+    }
+    #wrapper {
+      position: relative;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>📸 BharatCam Pro – Emoji Drag</h2>
+
+  <select id="cameraList"></select>
+  <button onclick="addEmoji('😎')">😎</button>
+  <button onclick="addEmoji('🔥')">🔥</button>
+  <button onclick="addEmoji('❤️')">❤️</button>
+  <input type="text" id="customText" placeholder="Write text">
+  <button onclick="addCustomText()">Add Text</button>
+  <button onclick="takePhoto()">📸 Capture</button>
+
+  <div id="wrapper">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="drawCanvas" width="400" height="300" style="position:absolute; left:0; top:0;"></canvas>
+  </div>
+
+  <canvas id="finalCanvas" style="display:none;"></canvas>
+  <br>
+  <button onclick="saveFinal()">💾 Save Final</button>
+  <br><img id="result" style="max-width:400px; display:none;">
+
+<script>
+  let stream = null;
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("drawCanvas");
+  const ctx = canvas.getContext("2d");
+  const cameraList = document.getElementById("cameraList");
+  const wrapper = document.getElementById("wrapper");
+
+  async function getCameras() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(d => d.kind === "videoinput");
+    cameraList.innerHTML = "";
+    videoDevices.forEach((device, i) => {
+      const opt = document.createElement("option");
+      opt.value = device.deviceId;
+      opt.text = device.label || `Camera ${i+1}`;
+      cameraList.appendChild(opt);
+    });
+    if (videoDevices.length > 0) startCamera(videoDevices[0].deviceId);
+  }
+
+  async function startCamera(deviceId) {
+    if (stream) stream.getTracks().forEach(track => track.stop());
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { deviceId: { exact: deviceId } },
+      audio: false
+    });
+    video.srcObject = stream;
+  }
+
+  function takePhoto() {
+    const finalCanvas = document.getElementById("finalCanvas");
+    finalCanvas.width = video.videoWidth;
+    finalCanvas.height = video.videoHeight;
+    const finalCtx = finalCanvas.getContext("2d");
+
+    finalCtx.drawImage(video, 0, 0);
+
+    // draw stickers
+    document.querySelectorAll('.sticker').forEach(sticker => {
+      finalCtx.font = window.getComputedStyle(sticker).font;
+      const rect = sticker.getBoundingClientRect();
+      const videoRect = video.getBoundingClientRect();
+      const x = rect.left - videoRect.left;
+      const y = rect.top - videoRect.top + 30;
+      finalCtx.fillText(sticker.textContent, x, y);
+    });
+
+    const result = document.getElementById("result");
+    result.src = finalCanvas.toDataURL();
+    result.style.display = "block";
+  }
+
+  function saveFinal() {
+    const finalCanvas = document.getElementById("finalCanvas");
+    const a = document.createElement("a");
+    a.href = finalCanvas.toDataURL("image/png");
+    a.download = "bharatcam_pro_emoji.png";
+    a.click();
+  }
+
+  function addEmoji(emoji) {
+    const span = document.createElement("span");
+    span.className = "sticker";
+    span.textContent = emoji;
+    span.style.left = "100px";
+    span.style.top = "100px";
+    wrapper.appendChild(span);
+    makeDraggable(span);
+  }
+
+  function addCustomText() {
+    const text = document.getElementById("customText").value.trim();
+    if (!text) return;
+    const span = document.createElement("span");
+    span.className = "sticker";
+    span.textContent = text;
+    span.style.left = "120px";
+    span.style.top = "120px";
+    wrapper.appendChild(span);
+    makeDraggable(span);
+  }
+
+  function makeDraggable(el) {
+    let isDragging = false;
+    let offsetX, offsetY;
+
+    el.addEventListener("mousedown", e => {
+      isDragging = true;
+      offsetX = e.offsetX;
+      offsetY = e.offsetY;
+    });
+
+    document.addEventListener("mousemove", e => {
+      if (!isDragging) return;
+      el.style.left = `${e.pageX - wrapper.offsetLeft - offsetX}px`;
+      el.style.top = `${e.pageY - wrapper.offsetTop - offsetY}px`;
+    });
+
+    document.addEventListener("mouseup", () => isDragging = false);
+  }
+
+  getCameras();
+</script>
+</body>
+</html>
