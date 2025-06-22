@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>📸 BharatCam v7 – HD Pro</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom, #ffeaa7, #fab1a0);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: start;
+      min-height: 100vh;
+    }
+
+    h2 {
+      margin-top: 20px;
+      color: #2d3436;
+    }
+
+    #cameraWrapper {
+      position: relative;
+      width: 90vw;
+      max-width: 600px;
+      aspect-ratio: 1/1;
+      background: #000;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      margin-top: 20px;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 20px;
+    }
+
+    canvas {
+      display: none;
+    }
+
+    .controls {
+      margin-top: 20px;
+    }
+
+    button, input, select {
+      padding: 12px 18px;
+      margin: 6px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background: #0984e3;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #74b9ff;
+    }
+
+    #downloadLink {
+      display: none;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📸 BharatCam v7 – HD Pro</h2>
+
+  <div id="cameraWrapper">
+    <video id="preview" autoplay muted playsinline></video>
+  </div>
+
+  <div class="controls">
+    <input type="file" id="audioInput" accept="audio/*">
+    <br>
+    <select onchange="setFilter(this.value)">
+      <option value="none">No Filter</option>
+      <option value="grayscale(1)">Grayscale</option>
+      <option value="sepia(1)">Sepia</option>
+      <option value="contrast(1.5)">Contrast</option>
+      <option value="saturate(1.5)">Vibrant</option>
+    </select>
+    <br>
+    <button onclick="startRecording()">🎬 Start</button>
+    <button onclick="stopRecording()">🛑 Stop</button>
+    <a id="downloadLink" download="bharatcam_hd_reel.webm">📥 Save Reel</a>
+  </div>
+
+  <canvas id="canvas" width="600" height="600"></canvas>
+
+  <script>
+    const video = document.getElementById('preview');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let stream, recorder, chunks = [], audio, audioStream, mixStream;
+    let animationFrame;
+
+    function setFilter(val) {
+      video.style.filter = val;
+    }
+
+    async function initCamera() {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1080 }, height: { ideal: 1080 }, facingMode: "user" },
+        audio: true
+      });
+      video.srcObject = stream;
+    }
+
+    function drawFrame() {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillStyle = "white";
+      ctx.fillText("📸 BharatCam", 10, canvas.height - 10);
+      animationFrame = requestAnimationFrame(drawFrame);
+    }
+
+    function startRecording() {
+      const audioFile = document.getElementById("audioInput").files[0];
+      if (!audioFile) return alert("Upload a background music track!");
+
+      audio = new Audio(URL.createObjectURL(audioFile));
+      audio.loop = true;
+      audio.play();
+
+      const ac = new AudioContext();
+      const source = ac.createMediaElementSource(audio);
+      const dest = ac.createMediaStreamDestination();
+      source.connect(dest);
+      source.connect(ac.destination);
+      audioStream = dest.stream;
+
+      mixStream = canvas.captureStream(30); // 30 FPS HD
+      audioStream.getAudioTracks().forEach(t => mixStream.addTrack(t));
+
+      recorder = new MediaRecorder(mixStream, { mimeType: 'video/webm;codecs=vp9' });
+      chunks = [];
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = saveVideo;
+      recorder.start();
+
+      drawFrame();
+      setTimeout(() => stopRecording(), 30000); // max 30s
+    }
+
+    function stopRecording() {
+      if (recorder && recorder.state === "recording") recorder.stop();
+      if (audio) audio.pause();
+      cancelAnimationFrame(animationFrame);
+    }
+
+    function saveVideo() {
+      const blob = new Blob(chunks, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+      const a = document.getElementById("downloadLink");
+      a.href = url;
+      a.style.display = "inline-block";
+    }
+
+    window.onload = initCamera;
+  </script>
+</body>
+</html>
