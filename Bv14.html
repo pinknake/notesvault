@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BharatCam v6 – Emoji, Crop & HD</title>
+  <style>
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      background: #f0f0f0;
+    }
+    #cameraView {
+      position: relative;
+      display: inline-block;
+    }
+    video {
+      width: 300px;
+      height: 300px;
+      object-fit: cover;
+      border-radius: 15px;
+    }
+    .emoji {
+      position: absolute;
+      font-size: 40px;
+      cursor: move;
+    }
+    button, input, select {
+      margin: 6px;
+      padding: 10px;
+    }
+    #downloadLink {
+      display: none;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📸 BharatCam v6 – Reels</h2>
+
+  <div id="cameraView">
+    <video id="preview" autoplay muted playsinline></video>
+    <div class="emoji" draggable="true" style="top: 30px; left: 50px;">😎</div>
+    <div class="emoji" draggable="true" style="top: 120px; left: 80px;">🧚‍♂️</div>
+    <div class="emoji" draggable="true" style="top: 200px; left: 100px;">🕉️</div>
+  </div><br>
+
+  <input type="file" id="audioInput" accept="audio/*"><br>
+
+  <select onchange="setFilter(this.value)">
+    <option value="none">No Filter</option>
+    <option value="grayscale(1)">Grayscale</option>
+    <option value="sepia(1)">Sepia</option>
+    <option value="contrast(1.5)">Contrast</option>
+    <option value="blur(2px)">Blur</option>
+  </select><br>
+
+  <button onclick="startRecording()">🎬 Start</button>
+  <button onclick="stopRecording()">🛑 Stop</button>
+  <a id="downloadLink" download="bharatcam_reel.webm">📥 Save Reel</a>
+
+  <canvas id="canvas" width="300" height="300" style="display:none;"></canvas>
+
+  <script>
+    const video = document.getElementById('preview');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const emojis = document.querySelectorAll('.emoji');
+    let stream, recorder, chunks = [], audio, audioStream, mixStream;
+    let animationFrame;
+
+    function dragEmoji() {
+      emojis.forEach(el => {
+        el.ondragstart = e => {
+          const style = window.getComputedStyle(e.target, null);
+          const str = (parseInt(style.getPropertyValue("left"), 10) - e.clientX) + ',' +
+                      (parseInt(style.getPropertyValue("top"), 10) - e.clientY);
+          e.dataTransfer.setData("Text", str);
+        };
+        el.ondragover = e => e.preventDefault();
+        el.ondrop = e => {
+          const offset = e.dataTransfer.getData("Text").split(',');
+          el.style.left = (e.clientX + parseInt(offset[0], 10)) + 'px';
+          el.style.top = (e.clientY + parseInt(offset[1], 10)) + 'px';
+          e.preventDefault();
+        };
+      });
+    }
+
+    function setFilter(val) {
+      video.style.filter = val;
+    }
+
+    async function initCamera() {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
+      video.srcObject = stream;
+    }
+
+    function drawFrame() {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      emojis.forEach(el => {
+        const rect = el.getBoundingClientRect();
+        const camRect = video.getBoundingClientRect();
+        const x = rect.left - camRect.left;
+        const y = rect.top - camRect.top;
+        ctx.font = "30px serif";
+        ctx.fillText(el.innerText, x, y);
+      });
+      ctx.font = "bold 12px sans-serif";
+      ctx.fillText("📸 BharatCam", 10, canvas.height - 10);
+      animationFrame = requestAnimationFrame(drawFrame);
+    }
+
+    function startRecording() {
+      const audioFile = document.getElementById("audioInput").files[0];
+      if (!audioFile) return alert("Please upload a background song");
+
+      audio = new Audio(URL.createObjectURL(audioFile));
+      audio.loop = true;
+      audio.play();
+
+      const ac = new AudioContext();
+      const source = ac.createMediaElementSource(audio);
+      const dest = ac.createMediaStreamDestination();
+      source.connect(dest);
+      source.connect(ac.destination);
+      audioStream = dest.stream;
+
+      mixStream = canvas.captureStream(30);
+      audioStream.getAudioTracks().forEach(t => mixStream.addTrack(t));
+
+      recorder = new MediaRecorder(mixStream);
+      chunks = [];
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = saveVideo;
+      recorder.start();
+
+      drawFrame();
+      setTimeout(() => stopRecording(), 30000);
+    }
+
+    function stopRecording() {
+      if (recorder && recorder.state === "recording") recorder.stop();
+      if (audio) audio.pause();
+      cancelAnimationFrame(animationFrame);
+    }
+
+    function saveVideo() {
+      const blob = new Blob(chunks, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+      const a = document.getElementById("downloadLink");
+      a.href = url;
+      a.style.display = "inline-block";
+    }
+
+    window.onload = () => {
+      initCamera();
+      dragEmoji();
+    };
+  </script>
+</body>
+</html>
