@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📷 Bharat HD Camera</title>
+  <style>
+    body {
+      background: #f8f9fa;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    video, canvas, img {
+      width: 95%;
+      max-width: 480px;
+      border: 4px solid #007bff;
+      border-radius: 12px;
+      margin: 10px auto;
+      display: block;
+    }
+    select, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    h1 {
+      color: #007bff;
+    }
+  </style>
+</head>
+<body>
+  <h1>📸 Bharat HD Camera</h1>
+
+  <select id="cameraList"></select><br>
+  <video id="video" autoplay playsinline muted></video>
+
+  <button onclick="startSelectedCamera()">🔄 Switch Camera</button>
+  <button onclick="takeSnapshot()">📸 Snapshot</button>
+  <button onclick="startRecording()">🔴 Start Recording</button>
+  <button onclick="stopRecording()">⏹️ Stop & Save Video</button>
+
+  <h3>📸 Snapshot Preview</h3>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <img id="snapshot" alt="Snapshot" style="display:none;" />
+
+  <h3>🎥 Video Preview</h3>
+  <video id="previewVideo" controls style="display:none;"></video>
+
+  <script>
+    const video = document.getElementById('video');
+    const cameraList = document.getElementById('cameraList');
+    const snapshot = document.getElementById('snapshot');
+    const canvas = document.getElementById('canvas');
+    const previewVideo = document.getElementById('previewVideo');
+
+    let currentStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+
+    // List Cameras
+    async function getCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+      cameraList.innerHTML = '';
+      videoDevices.forEach((device, i) => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.text = device.label || `Camera ${i + 1}`;
+        cameraList.appendChild(option);
+      });
+    }
+
+    async function startCamera(deviceId) {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            deviceId: { exact: deviceId },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: true
+        });
+
+        video.srcObject = stream;
+        currentStream = stream;
+      } catch (err) {
+        alert("❌ Camera error: " + err.message);
+      }
+    }
+
+    function startSelectedCamera() {
+      const selectedId = cameraList.value;
+      if (selectedId) {
+        startCamera(selectedId);
+      }
+    }
+
+    function takeSnapshot() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext("2d").drawImage(video, 0, 0);
+      snapshot.src = canvas.toDataURL("image/png");
+      snapshot.style.display = "block";
+    }
+
+    function startRecording() {
+      recordedChunks = [];
+      const stream = video.srcObject;
+      mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        previewVideo.src = url;
+        previewVideo.style.display = "block";
+      };
+
+      mediaRecorder.start();
+      alert("🎥 Recording started...");
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+        alert("✅ Recording stopped. Preview ready!");
+      }
+    }
+
+    // Initialize on load
+    (async () => {
+      await getCameras();
+      if (cameraList.options.length > 0) {
+        startCamera(cameraList.value);
+      }
+    })();
+  </script>
+</body>
+</html>
