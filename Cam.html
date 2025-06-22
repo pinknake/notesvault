@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📷 Bharat Camera</title>
+  <style>
+    body { text-align: center; font-family: sans-serif; background: #f2f2f2; }
+    video, canvas { width: 90%; max-width: 400px; margin-top: 10px; border-radius: 8px; }
+    select, button { margin: 10px; padding: 10px 15px; font-size: 16px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h2>📷 Bharat Camera App</h2>
+
+  <select id="cameraList"></select><br>
+  <video id="video" autoplay playsinline muted></video><br>
+
+  <button onclick="startSelectedCamera()">🔄 Switch Camera</button>
+  <button onclick="takePhoto()">📸 Capture</button><br>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const cameraList = document.getElementById('cameraList');
+    let currentStream = null;
+
+    async function getCameras() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        cameraList.innerHTML = '';
+        videoDevices.forEach((device, index) => {
+          const option = document.createElement('option');
+          option.value = device.deviceId;
+          option.text = device.label || `Camera ${index + 1}`;
+          cameraList.appendChild(option);
+        });
+      } catch (err) {
+        alert("Error listing cameras: " + err.message);
+      }
+    }
+
+    async function startCamera(deviceId) {
+      // Stop old stream
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: deviceId } }
+        });
+        video.srcObject = stream;
+        currentStream = stream;
+        await video.play();
+      } catch (error) {
+        alert("❌ Could not start camera:\n" + error.message);
+      }
+    }
+
+    function startSelectedCamera() {
+      const selectedId = cameraList.value;
+      if (selectedId) {
+        startCamera(selectedId);
+      }
+    }
+
+    function takePhoto() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.style.display = 'block';
+    }
+
+    (async () => {
+      await getCameras();
+      if (cameraList.options.length > 0) {
+        await startCamera(cameraList.value);
+      }
+    })();
+  </script>
+</body>
+</html>
