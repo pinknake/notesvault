@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BharatCam v4 🇮🇳</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    video {
+      width: 90%;
+      max-width: 400px;
+      border-radius: 12px;
+      margin: 10px 0;
+      background: black;
+    }
+    canvas {
+      display: none;
+    }
+    #controls {
+      margin: 15px 0;
+    }
+    button, select, input {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+      border-radius: 6px;
+    }
+    #sticker {
+      position: absolute;
+      top: 100px;
+      left: 100px;
+      font-size: 48px;
+      cursor: move;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📸 BharatCam v4</h1>
+
+  <select id="cameraList"></select><br>
+  <video id="video" autoplay muted playsinline></video><br>
+
+  <div id="controls">
+    <button onclick="switchCamera()">🔄 Switch</button>
+    <button onclick="toggleMic()">🔇/🔊 Mic</button>
+    <button onclick="startRecording()">⏺ Start</button>
+    <button onclick="stopRecording()">⏹ Stop</button>
+    <button onclick="takeSnapshot()">📸 Snap</button>
+  </div>
+
+  <input type="text" id="textOverlay" placeholder="Type text overlay">
+  <div id="sticker" draggable="true">😎</div>
+
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const cameraList = document.getElementById("cameraList");
+    const textOverlay = document.getElementById("textOverlay");
+    const sticker = document.getElementById("sticker");
+
+    let currentStream = null;
+    let mediaRecorder;
+    let recordedChunks = [];
+    let isMuted = true;
+
+    async function getCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === "videoinput");
+      cameraList.innerHTML = "";
+      videoDevices.forEach((device, index) => {
+        const opt = document.createElement("option");
+        opt.value = device.deviceId;
+        opt.text = device.label || `Camera ${index + 1}`;
+        cameraList.appendChild(opt);
+      });
+    }
+
+    async function startCamera(deviceId) {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: deviceId } },
+          audio: true
+        });
+        video.srcObject = stream;
+        currentStream = stream;
+      } catch (e) {
+        alert("Camera error: " + e.message);
+      }
+    }
+
+    function switchCamera() {
+      const selectedId = cameraList.value;
+      startCamera(selectedId);
+    }
+
+    function toggleMic() {
+      if (currentStream) {
+        currentStream.getAudioTracks().forEach(track => {
+          track.enabled = !track.enabled;
+        });
+        isMuted = !isMuted;
+        alert(isMuted ? "🔇 Mic muted" : "🔊 Mic unmuted");
+      }
+    }
+
+    function takeSnapshot() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Add overlay text
+      ctx.font = "30px Arial";
+      ctx.fillStyle = "red";
+      ctx.fillText(textOverlay.value, 20, 40);
+
+      // Add emoji sticker
+      const rect = sticker.getBoundingClientRect();
+      const videoRect = video.getBoundingClientRect();
+      const x = rect.left - videoRect.left;
+      const y = rect.top - videoRect.top;
+      ctx.font = "48px Arial";
+      ctx.fillText(sticker.textContent, x, y);
+
+      const link = document.createElement("a");
+      link.download = "snapshot.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    function startRecording() {
+      if (!currentStream) return alert("Start camera first");
+
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(currentStream);
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "bharatcam_recording.webm";
+        a.click();
+      };
+      mediaRecorder.start();
+      alert("⏺ Recording started");
+    }
+
+    function stopRecording() {
+      if (mediaRecorder) {
+        mediaRecorder.stop();
+        alert("⏹ Recording stopped and saved");
+      }
+    }
+
+    // Drag emoji sticker
+    sticker.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("text/plain", null);
+    });
+
+    document.addEventListener("dragover", e => e.preventDefault());
+    document.addEventListener("drop", e => {
+      e.preventDefault();
+      const x = e.clientX;
+      const y = e.clientY;
+      sticker.style.left = x + "px";
+      sticker.style.top = y + "px";
+    });
+
+    // Init
+    (async () => {
+      await getCameras();
+      if (cameraList.options.length) {
+        startCamera(cameraList.value);
+      }
+    })();
+  </script>
+</body>
+</html>
