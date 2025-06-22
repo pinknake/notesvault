@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📷 Bharat HD Camera Pro</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      text-align: center;
+      padding: 20px;
+    }
+
+    video, canvas, img {
+      width: 90%;
+      max-width: 400px;
+      border-radius: 12px;
+      border: 3px solid #007bff;
+      margin: 10px 0;
+    }
+
+    select, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    select#filterSelect {
+      width: 200px;
+    }
+
+    h2 {
+      color: #007bff;
+    }
+  </style>
+</head>
+<body>
+  <h2>📸 Bharat Camera Pro</h2>
+
+  <select id="cameraList"></select><br>
+  <select id="filterSelect" onchange="applyFilter(this.value)">
+    <option value="none">🎨 No Filter</option>
+    <option value="grayscale(100%)">🖤 B/W</option>
+    <option value="sepia(100%)">🟤 Sepia</option>
+    <option value="blur(4px)">🌀 Blur</option>
+    <option value="invert(100%)">🌈 Invert</option>
+  </select><br>
+
+  <video id="video" autoplay playsinline muted></video><br>
+
+  <button onclick="startSelectedCamera()">🔄 Switch Camera</button>
+  <button onclick="takeSnapshot()">📸 Snapshot</button>
+  <button onclick="saveSnapshot()">💾 Save Snapshot</button>
+  <button onclick="startRecording()">🔴 Start Recording</button>
+  <button onclick="stopRecording()">⏹️ Stop & Save</button>
+
+  <h3>🖼 Snapshot Preview</h3>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <img id="snapshot" style="display:none;" />
+
+  <h3>🎥 Video Preview</h3>
+  <video id="previewVideo" controls style="display:none;"></video>
+
+  <script>
+    const video = document.getElementById("video");
+    const snapshot = document.getElementById("snapshot");
+    const canvas = document.getElementById("canvas");
+    const previewVideo = document.getElementById("previewVideo");
+    const cameraList = document.getElementById("cameraList");
+
+    let currentStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+
+    async function getCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === "videoinput");
+      cameraList.innerHTML = "";
+      videoDevices.forEach((device, i) => {
+        const opt = document.createElement("option");
+        opt.value = device.deviceId;
+        opt.text = device.label || `Camera ${i + 1}`;
+        cameraList.appendChild(opt);
+      });
+    }
+
+    async function startCamera(deviceId) {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            deviceId: { exact: deviceId },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: true
+        });
+
+        video.srcObject = stream;
+        currentStream = stream;
+      } catch (err) {
+        alert("❌ Camera error: " + err.message);
+      }
+    }
+
+    function startSelectedCamera() {
+      const selectedId = cameraList.value;
+      if (selectedId) startCamera(selectedId);
+    }
+
+    function applyFilter(value) {
+      video.style.filter = value;
+    }
+
+    function takeSnapshot() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.filter = video.style.filter || "none";
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataURL = canvas.toDataURL("image/png");
+      snapshot.src = dataURL;
+      snapshot.style.display = "block";
+    }
+
+    function saveSnapshot() {
+      if (!snapshot.src) return alert("📷 No snapshot to save.");
+      const link = document.createElement("a");
+      link.href = snapshot.src;
+      link.download = "bharat_snapshot.png";
+      link.click();
+    }
+
+    function startRecording() {
+      recordedChunks = [];
+      const stream = video.srcObject;
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        previewVideo.src = url;
+        previewVideo.style.display = "block";
+      };
+      mediaRecorder.start();
+      alert("🎥 Recording started...");
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+        alert("✅ Recording stopped.");
+      }
+    }
+
+    // Init
+    (async () => {
+      await getCameras();
+      if (cameraList.options.length > 0) startCamera(cameraList.value);
+    })();
+  </script>
+</body>
+</html>
