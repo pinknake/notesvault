@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>📷 BharatCam v3 – Offline</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #e8f0ff;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #002366;
+      color: white;
+      padding: 15px;
+      font-size: 24px;
+    }
+
+    video, canvas {
+      width: 90%;
+      max-width: 400px;
+      border-radius: 10px;
+      border: 3px solid #444;
+      margin-top: 10px;
+    }
+
+    select, button {
+      padding: 10px;
+      margin: 8px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      background: #004080;
+      color: white;
+    }
+
+    .watermark {
+      position: absolute;
+      bottom: 10px;
+      right: 15px;
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .gallery {
+      margin: 20px 10px;
+    }
+
+    .gallery video, .gallery img {
+      width: 150px;
+      margin: 8px;
+      border-radius: 10px;
+    }
+
+    .stickers {
+      margin-top: 10px;
+    }
+
+    .sticker {
+      font-size: 30px;
+      cursor: grab;
+      display: inline-block;
+      margin: 5px;
+    }
+
+    .overlay-sticker {
+      position: absolute;
+      cursor: move;
+      user-select: none;
+    }
+
+    #wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    #canvas {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>🇮🇳 BharatCam v3 – Offline Recorder</header>
+
+<div class="controls">
+  <select id="cameraList"></select>
+  <button onclick="switchCamera()">🔄 Switch</button>
+  <button onclick="startRecording()">⏺️ Start</button>
+  <button onclick="stopRecording()">⏹️ Stop</button>
+  <button onclick="takeSnapshot()">📸 Snapshot</button>
+  <button onclick="clearStickers()">🧹 Clear Stickers</button>
+</div>
+
+<div class="filters">
+  <button onclick="setFilter('none')">❌ None</button>
+  <button onclick="setFilter('grayscale(1)')">🖤 Grayscale</button>
+  <button onclick="setFilter('sepia(1)')">📜 Sepia</button>
+  <button onclick="setFilter('invert(1)')">🌙 Invert</button>
+</div>
+
+<div class="stickers">
+  Drag Emoji: 
+  <span class="sticker" onclick="addSticker('😎')">😎</span>
+  <span class="sticker" onclick="addSticker('🎉')">🎉</span>
+  <span class="sticker" onclick="addSticker('🐱')">🐱</span>
+  <span class="sticker" onclick="addSticker('🇮🇳')">🇮🇳</span>
+  <span class="sticker" onclick="addSticker('❤️')">❤️</span>
+</div>
+
+<div id="wrapper">
+  <video id="video" autoplay playsinline muted></video>
+  <div class="watermark">📸 BharatCam</div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<div class="gallery">
+  <h3>📁 Saved Gallery</h3>
+  <div id="gallery"></div>
+</div>
+
+<script>
+  const video = document.getElementById("video");
+  const cameraList = document.getElementById("cameraList");
+  const gallery = document.getElementById("gallery");
+  const canvas = document.getElementById("canvas");
+  const wrapper = document.getElementById("wrapper");
+
+  let currentStream = null;
+  let mediaRecorder;
+  let chunks = [];
+  let currentFilter = "none";
+
+  async function getCameras() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(d => d.kind === "videoinput");
+    cameraList.innerHTML = '';
+    videoDevices.forEach((device, i) => {
+      const opt = document.createElement("option");
+      opt.value = device.deviceId;
+      opt.text = device.label || `Camera ${i + 1}`;
+      cameraList.appendChild(opt);
+    });
+    if (videoDevices.length) startCamera(videoDevices[0].deviceId);
+  }
+
+  async function startCamera(deviceId) {
+    if (currentStream) {
+      currentStream.getTracks().forEach(track => track.stop());
+    }
+    currentStream = await navigator.mediaDevices.getUserMedia({
+      video: { deviceId: { exact: deviceId } },
+      audio: true
+    });
+    video.srcObject = currentStream;
+  }
+
+  function switchCamera() {
+    const id = cameraList.value;
+    if (id) startCamera(id);
+  }
+
+  function startRecording() {
+    chunks = [];
+    mediaRecorder = new MediaRecorder(currentStream);
+    mediaRecorder.ondataavailable = e => chunks.push(e.data);
+    mediaRecorder.onstop = saveVideo;
+    mediaRecorder.start();
+    alert("🎬 Recording...");
+  }
+
+  function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+    }
+  }
+
+  function saveVideo() {
+    const blob = new Blob(chunks, { type: "video/webm" });
+    const url = URL.createObjectURL(blob);
+    const vid = document.createElement("video");
+    vid.src = url;
+    vid.controls = true;
+    gallery.appendChild(vid);
+  }
+
+  function setFilter(f) {
+    currentFilter = f;
+    video.style.filter = f;
+  }
+
+  function takeSnapshot() {
+    canvas.style.display = "block";
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+
+    ctx.filter = currentFilter;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const stickers = document.querySelectorAll(".overlay-sticker");
+    stickers.forEach(st => {
+      const rect = st.getBoundingClientRect();
+      const vidRect = video.getBoundingClientRect();
+      const x = rect.left - vidRect.left;
+      const y = rect.top - vidRect.top;
+      ctx.font = "30px sans-serif";
+      ctx.fillText(st.textContent, x, y + 20);
+    });
+
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(canvas.width - 120, canvas.height - 40, 110, 30);
+    ctx.fillStyle = "#fff";
+    ctx.font = "16px sans-serif";
+    ctx.fillText("📸 BharatCam", canvas.width - 110, canvas.height - 20);
+
+    const img = new Image();
+    img.src = canvas.toDataURL("image/png");
+    gallery.appendChild(img);
+    canvas.style.display = "none";
+  }
+
+  function addSticker(emoji) {
+    const el = document.createElement("div");
+    el.className = "overlay-sticker";
+    el.textContent = emoji;
+    el.style.left = "50px";
+    el.style.top = "50px";
+    wrapper.appendChild(el);
+    makeDraggable(el);
+  }
+
+  function makeDraggable(el) {
+    let offsetX, offsetY;
+    el.onmousedown = e => {
+      offsetX = e.clientX - el.offsetLeft;
+      offsetY = e.clientY - el.offsetTop;
+      document.onmousemove = move;
+      document.onmouseup = () => document.onmousemove = null;
+    };
+    function move(e) {
+      el.style.left = e.clientX - offsetX + "px";
+      el.style.top = e.clientY - offsetY + "px";
+    }
+  }
+
+  function clearStickers() {
+    document.querySelectorAll(".overlay-sticker").forEach(el => el.remove());
+  }
+
+  getCameras();
+</script>
+
+</body>
+</html>
