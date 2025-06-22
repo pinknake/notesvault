@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>📷 Bharat Camera v2</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: linear-gradient(to right, #f3f4f7, #dde6f3);
+      text-align: center;
+    }
+
+    header {
+      background: #002366;
+      color: white;
+      padding: 15px;
+      font-size: 24px;
+    }
+
+    #wrapper {
+      position: relative;
+      display: inline-block;
+      margin: 20px 0;
+    }
+
+    video {
+      width: 90%;
+      max-width: 400px;
+      border-radius: 12px;
+      border: 4px solid #444;
+    }
+
+    .controls, .filters {
+      margin: 10px;
+    }
+
+    select, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background: #002366;
+      color: white;
+    }
+
+    .filters button {
+      background: #444;
+    }
+
+    .watermark {
+      position: absolute;
+      bottom: 10px;
+      right: 20px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .gallery {
+      margin-top: 30px;
+    }
+
+    .gallery video {
+      width: 150px;
+      margin: 5px;
+      border-radius: 8px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <header>🇮🇳 Bharat Camera Recorder v2</header>
+
+  <div class="controls">
+    <select id="cameraList"></select>
+    <button onclick="switchCamera()">🔄 Switch</button>
+    <button onclick="startRecording()">⏺️ Start</button>
+    <button onclick="stopRecording()">⏹️ Stop & Save</button>
+  </div>
+
+  <div class="filters">
+    <button onclick="setFilter('none')">❌ None</button>
+    <button onclick="setFilter('grayscale(1)')">🖤 Grayscale</button>
+    <button onclick="setFilter('sepia(1)')">📜 Sepia</button>
+    <button onclick="setFilter('invert(1)')">🌙 Invert</button>
+  </div>
+
+  <div id="wrapper">
+    <video id="video" autoplay playsinline muted></video>
+    <div class="watermark">📸 BharatCam</div>
+  </div>
+
+  <section class="gallery">
+    <h3>🎞️ Saved Videos</h3>
+    <div id="videoGallery"></div>
+  </section>
+
+  <script>
+    const video = document.getElementById("video");
+    const cameraList = document.getElementById("cameraList");
+    const videoGallery = document.getElementById("videoGallery");
+
+    let mediaRecorder;
+    let currentStream = null;
+    let chunks = [];
+    let savedVideos = [];
+    let currentFilter = 'none';
+
+    async function getCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === 'videoinput');
+      cameraList.innerHTML = '';
+      videoDevices.forEach((device, i) => {
+        const opt = document.createElement("option");
+        opt.value = device.deviceId;
+        opt.text = device.label || `Camera ${i + 1}`;
+        cameraList.appendChild(opt);
+      });
+      if (videoDevices.length) {
+        startCamera(videoDevices[0].deviceId);
+      }
+    }
+
+    async function startCamera(deviceId) {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
+      currentStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceId } },
+        audio: true
+      });
+      video.srcObject = currentStream;
+    }
+
+    function switchCamera() {
+      const selectedId = cameraList.value;
+      startCamera(selectedId);
+    }
+
+    function startRecording() {
+      chunks = [];
+      mediaRecorder = new MediaRecorder(currentStream);
+      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+      mediaRecorder.onstop = saveVideo;
+      mediaRecorder.start();
+      alert("🎬 Recording started...");
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+      }
+    }
+
+    function saveVideo() {
+      const blob = new Blob(chunks, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+
+      const vid = document.createElement("video");
+      vid.src = url;
+      vid.controls = true;
+      videoGallery.appendChild(vid);
+
+      savedVideos.push(blob);
+    }
+
+    function setFilter(filterVal) {
+      currentFilter = filterVal;
+      video.style.filter = filterVal;
+    }
+
+    // INIT
+    getCameras();
+  </script>
+
+</body>
+</html>
