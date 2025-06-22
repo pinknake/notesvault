@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📷 Simple Camera App</title>
+  <style>
+    body { text-align: center; font-family: sans-serif; background: #f0f0f0; }
+    video, canvas { max-width: 100%; border-radius: 10px; margin-top: 10px; }
+    button { padding: 10px 20px; margin: 10px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h1>📷 Bharat Camera</h1>
+  <video id="video" autoplay playsinline></video><br>
+  <button onclick="switchCamera()">🔄 Switch Camera</button>
+  <button onclick="takePhoto()">📸 Capture</button>
+  <br>
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    let video = document.getElementById('video');
+    let canvas = document.getElementById('canvas');
+    let currentFacing = 'user'; // or 'environment'
+
+    async function startCamera(facing = 'user') {
+      if (navigator.mediaDevices?.getUserMedia) {
+        let stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: facing }
+        });
+        video.srcObject = stream;
+      } else {
+        alert('Camera not supported.');
+      }
+    }
+
+    function switchCamera() {
+      currentFacing = (currentFacing === 'user') ? 'environment' : 'user';
+      startCamera(currentFacing);
+    }
+
+    function takePhoto() {
+      let context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.style.display = 'block';
+    }
+
+    startCamera(); // start with front cam
+  </script>
+</body>
+</html>
