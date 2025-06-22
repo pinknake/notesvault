@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🎥 Bharat Video Recorder + Preview</title>
+  <style>
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      background: #f5f5f5;
+    }
+    video {
+      width: 90%;
+      max-width: 400px;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+    button, select {
+      margin: 10px;
+      padding: 10px 15px;
+      font-size: 16px;
+      border-radius: 5px;
+    }
+    #recordedVideo {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎥 Bharat Video Recorder</h2>
+
+  <select id="cameraSelect"></select><br>
+  <video id="preview" autoplay playsinline muted></video><br>
+
+  <button onclick="startSelectedCamera()">🔄 Switch Camera</button>
+  <button onclick="startRecording()">⏺ Start Recording</button>
+  <button onclick="stopRecording()">⏹ Stop & Preview</button>
+
+  <h3>🎬 Last Recording</h3>
+  <video id="recordedVideo" controls></video><br>
+
+  <script>
+    let currentStream = null;
+    let mediaRecorder;
+    let recordedChunks = [];
+
+    const videoElement = document.getElementById('preview');
+    const recordedVideo = document.getElementById('recordedVideo');
+    const cameraSelect = document.getElementById('cameraSelect');
+
+    async function getCameraList() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      cameraSelect.innerHTML = '';
+
+      videoDevices.forEach((device, index) => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.text = device.label || `Camera ${index + 1}`;
+        cameraSelect.appendChild(option);
+      });
+    }
+
+    async function startCamera(deviceId) {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: deviceId } },
+          audio: true
+        });
+
+        currentStream = stream;
+        videoElement.srcObject = stream;
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    function startSelectedCamera() {
+      const deviceId = cameraSelect.value;
+      if (deviceId) {
+        startCamera(deviceId);
+      }
+    }
+
+    function startRecording() {
+      if (!currentStream) return alert("❗ Camera not ready");
+
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(currentStream);
+
+      mediaRecorder.ondataavailable = function (e) {
+        if (e.data.size > 0) {
+          recordedChunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = function () {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+
+        recordedVideo.src = url;
+        recordedVideo.style.display = 'block';
+
+        // Optional: Auto download too
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bharat_recording_${Date.now()}.webm`;
+        a.click();
+      };
+
+      mediaRecorder.start();
+      alert("🔴 Recording started...");
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        alert("🟢 Stopped. Preview ready below!");
+      }
+    }
+
+    // Init
+    (async () => {
+      await getCameraList();
+      if (cameraSelect.options.length > 0) {
+        await startCamera(cameraSelect.value);
+      }
+    })();
+  </script>
+</body>
+</html>
