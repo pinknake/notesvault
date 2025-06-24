@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BharatVerse - Apps 🇮🇳</title>
+  <link href="https://fonts.googleapis.com/css2?family=Hind:wght@500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Hind', sans-serif;
+      background: linear-gradient(to bottom right, #ff9933, #ffffff, #138808);
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #d32f2f;
+      margin-bottom: 30px;
+    }
+
+    .scroll-container {
+      display: flex;
+      overflow-x: auto;
+      gap: 20px;
+      padding: 10px;
+      scroll-snap-type: x mandatory;
+    }
+
+    .card {
+      background: #fff;
+      min-width: 250px;
+      max-width: 280px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      padding: 15px;
+      scroll-snap-align: start;
+      flex-shrink: 0;
+      text-align: center;
+    }
+
+    .card img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      margin-bottom: 10px;
+    }
+
+    .card h2 {
+      font-size: 20px;
+      margin: 10px 0 5px;
+    }
+
+    .card p {
+      font-size: 14px;
+      color: #444;
+    }
+
+    .install-btn {
+      display: inline-block;
+      margin-top: 15px;
+      background: #007bff;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+
+    .install-btn:hover {
+      background: #0056b3;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 14px;
+      color: #333;
+    }
+
+    /* Mobile tweaks */
+    @media (max-width: 600px) {
+      .scroll-container {
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🌟 BharatVerse Apps</h1>
+
+  <div class="scroll-container">
+    <div class="card">
+      <img src="https://cdn-icons-png.flaticon.com/512/159/159604.png" alt="QR Tool Icon">
+      <h2>QR Tool - भारत</h2>
+      <p>Scan & generate QR codes easily on your phone.</p>
+      <a class="install-btn" href="QR_Scanner(3).apk" download>📥 Install Now</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    Made with ❤️ in BharatVerse 🇮🇳
+  </div>
+
+</body>
+</html>
