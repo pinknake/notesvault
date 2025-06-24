@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QR Tool - भारत 🇮🇳</title>
+  <link href="https://fonts.googleapis.com/css2?family=Hind:wght@500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Hind', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to bottom right, #ff9933, #ffffff, #138808);
+      text-align: center;
+      color: #222;
+    }
+    .box {
+      margin: 50px auto;
+      max-width: 420px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 30px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    }
+    h1 {
+      color: #d32f2f;
+    }
+    .flag {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
+    .download-btn {
+      display: inline-block;
+      margin-top: 25px;
+      padding: 14px 28px;
+      background: #007bff;
+      color: white;
+      text-decoration: none;
+      font-size: 18px;
+      border-radius: 10px;
+      transition: background 0.3s ease;
+    }
+    .download-btn:hover {
+      background: #0056b3;
+    }
+    .footer {
+      margin-top: 40px;
+      color: #444;
+      font-size: 14px;
+    }
+    .qr-code {
+      margin-top: 25px;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="flag">🇮🇳</div>
+    <h1>QR Tool - भारत</h1>
+    <p>🔍 Scan & Generate QR codes easily</p>
+    <p><strong>Version:</strong> 1.0.0</p>
+
+    <a class="download-btn" href="QR_Scanner(3).apk" download>📥 Download APK</a>
+
+    <div class="qr-code">
+      <p>📷 Scan to download</p>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://pinknake.github.io/notesvault/" alt="QR Code">
+    </div>
+  </div>
+
+  <div class="footer">Made with ❤️ in 🇮🇳 BharatVerse</div>
+</body>
+</html>
