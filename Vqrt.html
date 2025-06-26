@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>QR Tool - Bharat</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #f0f8ff, #e0f7fa);
+      color: #333;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-bottom: 10px;
+    }
+    textarea, input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px 5px;
+      border: none;
+      border-radius: 8px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #qrcode, #reader {
+      margin-top: 20px;
+    }
+    #result {
+      margin-top: 15px;
+      font-weight: bold;
+      color: green;
+    }
+    #langSelect {
+      margin-bottom: 10px;
+    }
+
+    /* ✅ Bottom Ad Container */
+    .ad-bottom {
+      margin-top: 30px;
+      text-align: center;
+    }
+
+    /* ✅ Side Ad Container (only shows on desktop) */
+    @media (min-width: 768px) {
+      .ad-side {
+        position: fixed;
+        right: 10px;
+        top: 100px;
+        width: 160px;
+        z-index: 999;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ✅ Side Ad (Desktop only) -->
+  <div class="ad-side">
+    <script async="async" data-cfasync="false" src="//pl26993212.profitableratecpm.com/f411671ee1d0146704d13266d9687f63/invoke.js"></script>
+    <div id="container-f411671ee1d0146704d13266d9687f63" style="width:160px; height:auto;"></div>
+  </div>
+
+  <!-- ✅ Top Banner Ad (Calm, fixed size) -->
+  <div class="ad-banner" style="text-align: center; margin: 10px auto;">
+    <script type="text/javascript">
+      atOptions = {
+        'key' : '2839a3c1ca8fc9e07589a1b83ea67a15',
+        'format' : 'iframe',
+        'height' : 50,
+        'width' : 320,
+        'params' : {}
+      };
+    </script>
+    <script type="text/javascript" src="//www.highperformanceformat.com/2839a3c1ca8fc9e07589a1b83ea67a15/invoke.js"></script>
+  </div>
+
+  <div class="container">
+    <h2 id="title">🔍 QR Tool - Bharat 🇮🇳</h2>
+    <select id="langSelect" onchange="changeLanguage()">
+      <option value="en">English</option>
+      <option value="hi">हिन्दी</option>
+      <option value="bn">বাংলা</option>
+    </select>
+
+    <textarea id="qrText" placeholder="Enter URL, text or payment link..."></textarea>
+    <button onclick="generateQR()">Generate QR</button>
+    <div id="qrcode"></div>
+    <button onclick="shareQR()">Share QR</button>
+
+    <hr />
+
+    <div id="reader" style="width: 100%; max-width: 400px;"></div>
+    <p id="result">Result will appear here...</p>
+    <input type="file" id="imageUpload" accept="image/*" onchange="scanImage(event)" />
+  </div>
+
+
+    <!-- ✅ Native Ad (Non-intrusive, inside content) -->
+    <div class="ad-native" style="text-align:center; margin: 15px 0;">
+      <script async="async" data-cfasync="false" src="//pl26993212.profitableratecpm.com/f411671ee1d0146704d13266d9687f63/invoke.js"></script>
+      <div id="container-f411671ee1d0146704d13266d9687f63" style="width:100%; min-height:100px;"></div>
+    </div>
+
+    <div id="reader" style="width: 100%; max-width: 400px;"></div>
+    <p id="result">Result will appear here...</p>
+    <input type="file" id="imageUpload" accept="image/*" onchange="scanImage(event)" />
+  </div>
+
+  <!-- ✅ Social Ad (non-refreshing side box) -->
+  <div class="ad-social" style="position: fixed; bottom: 80px; right: 10px; width: 300px; max-width: 90vw; z-index: 9999; background: #fff; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.2); padding: 5px;">
+    <script type='text/javascript' src='//pl27011960.profitableratecpm.com/ef/1a/43/ef1a432319118bcb45467ce0fd7f2ff4.js'></script>
+  </div>
+
+  <!-- ✅ Bottom Fixed Banner Ad -->
+  <div class="ad-bottom" style="position: fixed; bottom: 0; left: 0; width: 100%; background: #f8f8f8; text-align: center; z-index: 999;">
+    <script type="text/javascript">
+      atOptions = {
+        'key' : '2839a3c1ca8fc9e07589a1b83ea67a15',
+        'format' : 'iframe',
+        'height' : 50,
+        'width' : 320,
+        'params' : {}
+      };
+    </script>
+    <script type="text/javascript" src="//www.highperformanceformat.com/2839a3c1ca8fc9e07589a1b83ea67a15/invoke.js"></script>
+  </div>
+
+<script>
+  
+<script>
+  let qr;
+
+  function generateQR() {
+    const text = document.getElementById("qrText").value.trim();
+    if (!text) return alert("Please enter text or URL");
+    document.getElementById("qrcode").innerHTML = "";
+    qr = new QRCode("qrcode", {
+      text: text,
+      width: 256,
+      height: 256
+    });
+  }
+
+  function shareQR() {
+    const img = document.querySelector("#qrcode img");
+    if (!img) return alert("Generate QR first");
+    if (navigator.share) {
+      fetch(img.src)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], "qr.png", { type: blob.type });
+          navigator.share({
+            files: [file],
+            title: "QR Code",
+            text: "Scan this QR code"
+          });
+        });
+    } else {
+      alert("Sharing not supported in this browser");
+    }
+  }
+
+  function scanImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.src = reader.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        Html5Qrcode.getCameras().then(() => {
+          const scanner = new Html5Qrcode("reader");
+          scanner.scanFile(file, true).then(decoded => {
+            document.getElementById("result").innerText = decoded;
+            scanner.clear();
+          }).catch(err => {
+            alert("Failed to scan: " + err);
+          });
+        });
+      };
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function changeLanguage() {
+    const lang = document.getElementById("langSelect").value;
+    const textMap = {
+      en: {
+        title: "🔍 QR Tool - Bharat 🇮🇳",
+        placeholder: "Enter URL, text or payment link...",
+        generate: "Generate QR",
+        result: "Result will appear here..."
+      },
+      hi: {
+        title: "🔍 QR टूल - भारत 🇮🇳",
+        placeholder: "यूआरएल, टेक्स्ट या भुगतान लिंक दर्ज करें...",
+        generate: "QR बनाएँ",
+        result: "परिणाम यहाँ दिखेगा..."
+      },
+      bn: {
+        title: "🔍 QR টুল - ভারত 🇮🇳",
+        placeholder: "ইউআরএল, টেক্সট বা পেমেন্ট লিঙ্ক দিন...",
+        generate: "QR তৈরি করুন",
+        result: "ফলাফল এখানে দেখাবে..."
+      }
+    };
+
+    const t = textMap[lang];
+    document.getElementById("title").innerText = t.title;
+    document.getElementById("qrText").placeholder = t.placeholder;
+    document.getElementById("result").innerText = t.result;
+  }
+
+  new Html5Qrcode("reader").start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      document.getElementById("result").innerText = decodedText;
+    }
+  );
+</script>
+</body>
+</html>
